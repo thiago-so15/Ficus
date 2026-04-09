@@ -2,15 +2,17 @@
  * @param {{
  *   active: 'albums' | 'stores' | 'settings' | 'profile'
  *   onChange: (t: 'albums' | 'stores' | 'settings' | 'profile') => void
+ *   disabled?: boolean
  * }} props
  */
-export function BottomNav({ active, onChange }) {
+export function BottomNav({ active, onChange, disabled = false }) {
   return (
     <nav className="bottom-nav bottom-nav--four" aria-label="Navegación principal">
       <button
         type="button"
         className={`bottom-nav__item ${active === 'albums' ? 'bottom-nav__item--active' : ''}`}
         onClick={() => onChange('albums')}
+        disabled={disabled}
         aria-current={active === 'albums' ? 'page' : undefined}
       >
         <span className="bottom-nav__icon" aria-hidden>
@@ -27,6 +29,7 @@ export function BottomNav({ active, onChange }) {
         type="button"
         className={`bottom-nav__item ${active === 'stores' ? 'bottom-nav__item--active' : ''}`}
         onClick={() => onChange('stores')}
+        disabled={disabled}
         aria-current={active === 'stores' ? 'page' : undefined}
       >
         <span className="bottom-nav__icon" aria-hidden>
@@ -43,6 +46,7 @@ export function BottomNav({ active, onChange }) {
         type="button"
         className={`bottom-nav__item ${active === 'settings' ? 'bottom-nav__item--active' : ''}`}
         onClick={() => onChange('settings')}
+        disabled={disabled}
         aria-current={active === 'settings' ? 'page' : undefined}
       >
         <span className="bottom-nav__icon" aria-hidden>
@@ -59,6 +63,7 @@ export function BottomNav({ active, onChange }) {
         type="button"
         className={`bottom-nav__item ${active === 'profile' ? 'bottom-nav__item--active' : ''}`}
         onClick={() => onChange('profile')}
+        disabled={disabled}
         aria-current={active === 'profile' ? 'page' : undefined}
       >
         <span className="bottom-nav__icon" aria-hidden>

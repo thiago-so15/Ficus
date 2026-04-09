@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 
 /** @typedef {'missing' | 'owned' | 'duplicate'} DemoState */
 
@@ -106,94 +106,172 @@ function SlideAlbumsIllustration() {
 }
 
 /**
- * @param {{ onComplete: () => void }} props
+ * @param {{
+ *   onComplete: () => void
+ *   transitionMs: number
+ *   reducedMotion: boolean
+ * }} props
  */
-export function OnboardingScreen({ onComplete }) {
+export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
   const [slide, setSlide] = useState(0)
+  const [navLock, setNavLock] = useState(false)
+  /** @type {[{ from: number, to: number, dir: 'next' | 'back', step: 'prepare' | 'run' } | null, function]} */
+  const [slideTrans, setSlideTrans] = useState(null)
+
+  const tDur = reducedMotion ? 0 : transitionMs
+
+  useLayoutEffect(() => {
+    if (!slideTrans || slideTrans.step !== 'prepare') return undefined
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setSlideTrans((s) => (s && s.step === 'prepare' ? { ...s, step: 'run' } : s)))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [slideTrans])
+
+  useEffect(() => {
+    if (!slideTrans || slideTrans.step !== 'run') return undefined
+    if (tDur === 0) {
+      const to = slideTrans.to
+      const id = window.setTimeout(() => {
+        setSlide(to)
+        setSlideTrans(null)
+        setNavLock(false)
+      }, 0)
+      return () => clearTimeout(id)
+    }
+    const timer = window.setTimeout(() => {
+      setSlide(slideTrans.to)
+      setSlideTrans(null)
+      setNavLock(false)
+    }, tDur)
+    return () => clearTimeout(timer)
+  }, [slideTrans, tDur])
+
+  const goTo = (to, dir) => {
+    if (navLock || slide === to) return
+    if (to < 0 || to > 3) return
+    if (reducedMotion || tDur === 0) {
+      setSlide(to)
+      return
+    }
+    setNavLock(true)
+    setSlideTrans({ from: slide, to, dir, step: 'prepare' })
+  }
+
+  const goNextSlide = () => goTo(slide + 1, 'next')
+  const goPrevSlide = () => goTo(slide - 1, 'back')
+
+  /**
+   * @param {number} index
+   */
+  const renderSlideBody = (index) => {
+    if (index === 0) {
+      return (
+        <div className="onboarding-slide">
+          <FicusLogoMark />
+          <h1 className="onboarding-brand">Ficus</h1>
+          <p className="onboarding-slogan">Tu colección, siempre al día</p>
+          <div className="onboarding-grid onboarding-grid--4" aria-hidden>
+            {SLIDE1_GRID.flatMap((row, i) => row.map((cell, j) => <DemoSticker key={`s1-${i}-${j}`} state={cell} />))}
+          </div>
+          <button type="button" className="btn btn--primary onboarding-cta" onClick={() => goNextSlide()}>
+            Empezar
+          </button>
+        </div>
+      )
+    }
+    if (index === 1) {
+      return (
+        <div className="onboarding-slide">
+          <h2 className="onboarding-title">Seguí tus figuritas fácilmente</h2>
+          <p className="onboarding-desc">
+            Tocá cada casillero para marcar si te falta, si la tenés o si tenés duplicadas. Todo queda guardado en tu
+            dispositivo.
+          </p>
+          <div className="onboarding-grid onboarding-grid--5" aria-hidden>
+            {SLIDE2_GRID.flatMap((row, i) => row.map((cell, j) => <DemoSticker key={`s2-${i}-${j}`} state={cell} />))}
+          </div>
+          <StickerLegend />
+          <div className="onboarding-nav-btns">
+            <button type="button" className="btn btn--secondary" onClick={() => goPrevSlide()}>
+              Atrás
+            </button>
+            <button type="button" className="btn btn--primary" onClick={() => goNextSlide()}>
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )
+    }
+    if (index === 2) {
+      return (
+        <div className="onboarding-slide">
+          <h2 className="onboarding-title">Encontrá tiendas cerca tuyo</h2>
+          <p className="onboarding-desc">
+            Explorá kioscos, librerías y jugueterías con dirección, tipo y si están abiertos ahora.
+          </p>
+          <SlideStoresIllustration />
+          <div className="onboarding-nav-btns">
+            <button type="button" className="btn btn--secondary" onClick={() => goPrevSlide()}>
+              Atrás
+            </button>
+            <button type="button" className="btn btn--primary" onClick={() => goNextSlide()}>
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div className="onboarding-slide">
+        <h2 className="onboarding-title">Seguí tu progreso en cada álbum</h2>
+        <p className="onboarding-desc">
+          Mirá cuántas figuritas llevás, el porcentaje completado y agregá nuevos álbumes cuando quieras.
+        </p>
+        <SlideAlbumsIllustration />
+        <div className="onboarding-nav-btns onboarding-nav-btns--stack">
+          <button type="button" className="btn btn--primary onboarding-cta" onClick={onComplete}>
+            Empezar a coleccionar
+          </button>
+          <button type="button" className="btn btn--secondary" onClick={() => goPrevSlide()}>
+            Atrás
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const transClass = slideTrans
+    ? `onboarding-slide-pair onboarding-slide-pair--${slideTrans.dir} onboarding-slide-pair--${slideTrans.step}`
+    : ''
 
   return (
     <div className="onboarding">
       {slide > 0 && slide < 3 && (
-        <button type="button" className="onboarding-skip" onClick={() => setSlide(3)}>
+        <button
+          type="button"
+          className="onboarding-skip"
+          onClick={() => {
+            if (navLock) return
+            if (reducedMotion || tDur === 0) setSlide(3)
+            else goTo(3, 'next')
+          }}
+          disabled={navLock}
+        >
           Saltar
         </button>
       )}
 
       <div className="onboarding-slides">
-        {slide === 0 && (
-          <div className="onboarding-slide fade-in">
-            <FicusLogoMark />
-            <h1 className="onboarding-brand">Ficus</h1>
-            <p className="onboarding-slogan">Tu colección, siempre al día</p>
-            <div className="onboarding-grid onboarding-grid--4" aria-hidden>
-              {SLIDE1_GRID.flatMap((row, i) =>
-                row.map((cell, j) => <DemoSticker key={`s1-${i}-${j}`} state={cell} />),
-              )}
+        {slideTrans ? (
+          <div className={['onboarding-slide-viewport', transClass, slideTrans.step === 'run' && 'transition-will-change'].filter(Boolean).join(' ')}>
+            <div className="onboarding-slide-panel onboarding-slide-panel--out" inert="" aria-hidden>
+              {renderSlideBody(slideTrans.from)}
             </div>
-            <button type="button" className="btn btn--primary onboarding-cta" onClick={() => setSlide(1)}>
-              Empezar
-            </button>
+            <div className="onboarding-slide-panel onboarding-slide-panel--in">{renderSlideBody(slideTrans.to)}</div>
           </div>
-        )}
-
-        {slide === 1 && (
-          <div className="onboarding-slide fade-in">
-            <h2 className="onboarding-title">Seguí tus figuritas fácilmente</h2>
-            <p className="onboarding-desc">
-              Tocá cada casillero para marcar si te falta, si la tenés o si tenés duplicadas. Todo queda guardado en tu
-              dispositivo.
-            </p>
-            <div className="onboarding-grid onboarding-grid--5" aria-hidden>
-              {SLIDE2_GRID.flatMap((row, i) =>
-                row.map((cell, j) => <DemoSticker key={`s2-${i}-${j}`} state={cell} />),
-              )}
-            </div>
-            <StickerLegend />
-            <div className="onboarding-nav-btns">
-              <button type="button" className="btn btn--secondary" onClick={() => setSlide(0)}>
-                Atrás
-              </button>
-              <button type="button" className="btn btn--primary" onClick={() => setSlide(2)}>
-                Siguiente
-              </button>
-            </div>
-          </div>
-        )}
-
-        {slide === 2 && (
-          <div className="onboarding-slide fade-in">
-            <h2 className="onboarding-title">Encontrá tiendas cerca tuyo</h2>
-            <p className="onboarding-desc">
-              Explorá kioscos, librerías y jugueterías con dirección, tipo y si están abiertos ahora.
-            </p>
-            <SlideStoresIllustration />
-            <div className="onboarding-nav-btns">
-              <button type="button" className="btn btn--secondary" onClick={() => setSlide(1)}>
-                Atrás
-              </button>
-              <button type="button" className="btn btn--primary" onClick={() => setSlide(3)}>
-                Siguiente
-              </button>
-            </div>
-          </div>
-        )}
-
-        {slide === 3 && (
-          <div className="onboarding-slide fade-in">
-            <h2 className="onboarding-title">Seguí tu progreso en cada álbum</h2>
-            <p className="onboarding-desc">
-              Mirá cuántas figuritas llevás, el porcentaje completado y agregá nuevos álbumes cuando quieras.
-            </p>
-            <SlideAlbumsIllustration />
-            <div className="onboarding-nav-btns onboarding-nav-btns--stack">
-              <button type="button" className="btn btn--primary onboarding-cta" onClick={onComplete}>
-                Empezar a coleccionar
-              </button>
-              <button type="button" className="btn btn--secondary" onClick={() => setSlide(2)}>
-                Atrás
-              </button>
-            </div>
-          </div>
+        ) : (
+          <div className="onboarding-slide-viewport onboarding-slide-viewport--single">{renderSlideBody(slide)}</div>
         )}
       </div>
 
@@ -205,8 +283,17 @@ export function OnboardingScreen({ onComplete }) {
             role="tab"
             aria-selected={slide === i}
             aria-label={`Paso ${i + 1} de 4`}
+            disabled={navLock}
             className={`onboarding-dot ${slide === i ? 'onboarding-dot--active' : ''}`}
-            onClick={() => setSlide(i)}
+            onClick={() => {
+              if (navLock) return
+              if (i === slide) return
+              if (reducedMotion || tDur === 0) {
+                setSlide(i)
+                return
+              }
+              goTo(i, i > slide ? 'next' : 'back')
+            }}
           />
         ))}
       </div>

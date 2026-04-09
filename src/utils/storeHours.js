@@ -85,3 +85,53 @@ export function formatWeeklyHoursLines(weeklyHours) {
     return `${label}: ${slot.open} – ${slot.close}`
   })
 }
+
+const DAY_ORDER_ES = /** @type {const} */ ([
+  ['mon', 'Lunes'],
+  ['tue', 'Martes'],
+  ['wed', 'Miércoles'],
+  ['thu', 'Jueves'],
+  ['fri', 'Viernes'],
+  ['sat', 'Sábado'],
+  ['sun', 'Domingo'],
+])
+
+/**
+ * Día de la semana (clave WeeklyHours) en la zona horaria de la tienda.
+ * @param {string} timeZone IANA
+ * @param {Date} [now]
+ */
+export function getWeekdayKeyInStoreTimeZone(timeZone, now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+  }).formatToParts(now)
+  const wd = parts.find((p) => p.type === 'weekday')?.value
+  const key = wd ? SHORT_TO_KEY[/** @type {keyof typeof SHORT_TO_KEY} */ (wd)] : undefined
+  return key && DAY_ORDER.includes(key) ? key : 'mon'
+}
+
+/**
+ * Filas para UI: nombre del día en español, horario o cerrado, si es hoy.
+ * @param {WeeklyHours} weeklyHours
+ * @param {string} timeZone
+ * @param {Date} [now]
+ * @returns {{ key: string, dayLabel: string, closed: boolean, rangeText: string, isToday: boolean }[]}
+ */
+export function getWeeklyHoursRowsEs(weeklyHours, timeZone, now = new Date()) {
+  const todayKey = getWeekdayKeyInStoreTimeZone(timeZone, now)
+  return DAY_ORDER_ES.map(([key, dayLabel]) => {
+    const slot = weeklyHours[/** @type {keyof typeof weeklyHours} */ (key)]
+    const isToday = key === todayKey
+    if (!slot) {
+      return { key, dayLabel, closed: true, rangeText: 'Cerrado', isToday }
+    }
+    return {
+      key,
+      dayLabel,
+      closed: false,
+      rangeText: `${slot.open} – ${slot.close}`,
+      isToday,
+    }
+  })
+}

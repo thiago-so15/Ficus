@@ -14,6 +14,7 @@
  *   website?: string
  *   note: string
  *   description: string
+ *   coverSrc?: string
  * }} StoreDefinition
  */
 
@@ -990,6 +991,14 @@ export const STORES_CATALOG = [
       'La Feria Chilena del Libro concentra editoriales y puestos de coleccionables en fechas determinadas. El horario aquí es referencial para días de feria; ver fechas oficiales.',
   },
 ]
+
+/**
+ * @param {string} id
+ * @returns {StoreDefinition | null}
+ */
+export function getStoreById(id) {
+  return STORES_CATALOG.find((s) => s.id === id) ?? null
+}
 
 export const STORE_TYPE_LABELS = {
   kiosco: 'Kiosco',

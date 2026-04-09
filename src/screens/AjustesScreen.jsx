@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import packageJson from '../../package.json'
 import { clearAllFicusLocalStorage, readAllFicusLocalStorage } from '../data/ficusStorage'
 
@@ -119,6 +119,8 @@ const COPY = /** @type {const} */ ({
 
 const LANG_LABEL = { es: 'Español', en: 'English', pt: 'Português' }
 
+/** @typedef {'closed' | 'opening' | 'open' | 'closing'} ModalPhase */
+
 /**
  * @param {{
  *   userPrefs: UserPreferences
@@ -126,12 +128,22 @@ const LANG_LABEL = { es: 'Español', en: 'English', pt: 'Português' }
  *   appSettings: AppSettings
  *   onSaveAppSettings: (next: AppSettings) => void
  *   onWiped: () => void
+ *   transitionMs?: number
+ *   reducedMotion?: boolean
  * }} props
  */
-export function AjustesScreen({ userPrefs, onSaveUserPrefs, appSettings, onSaveAppSettings, onWiped }) {
+export function AjustesScreen({
+  userPrefs,
+  onSaveUserPrefs,
+  appSettings,
+  onSaveAppSettings,
+  onWiped,
+  transitionMs = 450,
+  reducedMotion = false,
+}) {
   const t = COPY[userPrefs.locale] ?? COPY.es
-  const [langOpen, setLangOpen] = useState(false)
-  const [wipeOpen, setWipeOpen] = useState(false)
+  const [langPhase, setLangPhase] = useState(/** @type {ModalPhase} */ ('closed'))
+  const [wipePhase, setWipePhase] = useState(/** @type {ModalPhase} */ ('closed'))
 
   const themeSubtitle = userPrefs.theme === 'light' ? t.themeLight : t.themeDark
 
@@ -163,11 +175,76 @@ export function AjustesScreen({ userPrefs, onSaveUserPrefs, appSettings, onSaveA
     URL.revokeObjectURL(url)
   }
 
+  const openLang = () => {
+    if (reducedMotion || transitionMs === 0) {
+      setLangPhase('open')
+      return
+    }
+    setLangPhase('opening')
+  }
+
+  useLayoutEffect(() => {
+    if (langPhase !== 'opening') return undefined
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setLangPhase('open'))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [langPhase])
+
+  const closeLang = () => {
+    if (langPhase === 'closed') return
+    if (reducedMotion || transitionMs === 0) {
+      setLangPhase('closed')
+      return
+    }
+    setLangPhase('closing')
+  }
+
+  useEffect(() => {
+    if (langPhase !== 'closing') return undefined
+    const timer = window.setTimeout(() => setLangPhase('closed'), transitionMs)
+    return () => clearTimeout(timer)
+  }, [langPhase, transitionMs])
+
+  const openWipe = () => {
+    if (reducedMotion || transitionMs === 0) {
+      setWipePhase('open')
+      return
+    }
+    setWipePhase('opening')
+  }
+
+  useLayoutEffect(() => {
+    if (wipePhase !== 'opening') return undefined
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setWipePhase('open'))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [wipePhase])
+
+  const closeWipe = () => {
+    if (wipePhase === 'closed') return
+    if (reducedMotion || transitionMs === 0) {
+      setWipePhase('closed')
+      return
+    }
+    setWipePhase('closing')
+  }
+
+  useEffect(() => {
+    if (wipePhase !== 'closing') return undefined
+    const timer = window.setTimeout(() => setWipePhase('closed'), transitionMs)
+    return () => clearTimeout(timer)
+  }, [wipePhase, transitionMs])
+
   const confirmWipe = () => {
     clearAllFicusLocalStorage()
-    setWipeOpen(false)
+    setWipePhase('closed')
     onWiped()
   }
+
+  const langModalVisible = langPhase === 'open' || langPhase === 'closing'
+  const wipeModalVisible = wipePhase === 'open' || wipePhase === 'closing'
 
   return (
     <div className="screen screen--ajustes fade-in">
@@ -251,7 +328,7 @@ export function AjustesScreen({ userPrefs, onSaveUserPrefs, appSettings, onSaveA
       <section className="ajustes-section" aria-label={t.langRegion}>
         <h2 className="ajustes-section__label">{t.langRegion}</h2>
         <div className="ajustes-card">
-          <button type="button" className="ajustes-row ajustes-row--nav ajustes-row--last" onClick={() => setLangOpen(true)}>
+          <button type="button" className="ajustes-row ajustes-row--nav ajustes-row--last" onClick={openLang}>
             <span className="ajustes-icon-wrap ajustes-icon-wrap--globe">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
@@ -364,7 +441,7 @@ export function AjustesScreen({ userPrefs, onSaveUserPrefs, appSettings, onSaveA
               <span className="ajustes-row__sub">{t.exportSub}</span>
             </span>
           </button>
-          <button type="button" className="ajustes-row ajustes-row--danger ajustes-row--last" onClick={() => setWipeOpen(true)}>
+          <button type="button" className="ajustes-row ajustes-row--danger ajustes-row--last" onClick={openWipe}>
             <span className="ajustes-icon-wrap ajustes-icon-wrap--danger">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
@@ -382,10 +459,21 @@ export function AjustesScreen({ userPrefs, onSaveUserPrefs, appSettings, onSaveA
 
       <p className="ajustes-footer">{t.footer}</p>
 
-      {langOpen && (
-        <div className="ajustes-overlay" role="presentation" onClick={() => setLangOpen(false)}>
+      {langPhase !== 'closed' && (
+        <div
+          className={[
+            'app-modal',
+            langModalVisible && 'app-modal--visible',
+            langPhase === 'closing' && 'app-modal--exit',
+            langPhase === 'open' && 'transition-will-change',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          role="presentation"
+        >
+          <button type="button" className="app-modal__backdrop" aria-label={t.wipeCancel} onClick={closeLang} />
           <div
-            className="ajustes-sheet"
+            className="ajustes-sheet app-modal__sheet"
             role="dialog"
             aria-modal="true"
             aria-labelledby="ajustes-lang-title"
@@ -402,7 +490,7 @@ export function AjustesScreen({ userPrefs, onSaveUserPrefs, appSettings, onSaveA
                     className={`ajustes-lang-item ${userPrefs.locale === code ? 'ajustes-lang-item--active' : ''}`}
                     onClick={() => {
                       toggleUser({ locale: /** @type {'es'|'en'|'pt'} */ (code) })
-                      setLangOpen(false)
+                      closeLang()
                     }}
                   >
                     {LANG_LABEL[code]}
@@ -410,17 +498,28 @@ export function AjustesScreen({ userPrefs, onSaveUserPrefs, appSettings, onSaveA
                 </li>
               ))}
             </ul>
-            <button type="button" className="btn btn--secondary btn--block ajustes-sheet__close" onClick={() => setLangOpen(false)}>
+            <button type="button" className="btn btn--secondary btn--block ajustes-sheet__close" onClick={closeLang}>
               {t.wipeCancel}
             </button>
           </div>
         </div>
       )}
 
-      {wipeOpen && (
-        <div className="ajustes-overlay" role="presentation" onClick={() => setWipeOpen(false)}>
+      {wipePhase !== 'closed' && (
+        <div
+          className={[
+            'app-modal',
+            wipeModalVisible && 'app-modal--visible',
+            wipePhase === 'closing' && 'app-modal--exit',
+            wipePhase === 'open' && 'transition-will-change',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          role="presentation"
+        >
+          <button type="button" className="app-modal__backdrop" aria-label={t.wipeCancel} onClick={closeWipe} />
           <div
-            className="ajustes-sheet ajustes-sheet--danger"
+            className="ajustes-sheet ajustes-sheet--danger app-modal__sheet"
             role="dialog"
             aria-modal="true"
             aria-labelledby="ajustes-wipe-title"
@@ -434,7 +533,7 @@ export function AjustesScreen({ userPrefs, onSaveUserPrefs, appSettings, onSaveA
               <button type="button" className="btn btn--danger btn--block" onClick={confirmWipe}>
                 {t.wipeConfirm}
               </button>
-              <button type="button" className="btn btn--muted btn--block" onClick={() => setWipeOpen(false)}>
+              <button type="button" className="btn btn--muted btn--block" onClick={closeWipe}>
                 {t.wipeCancel}
               </button>
             </div>

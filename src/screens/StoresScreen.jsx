@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { StoreCard } from '../components/StoreCard'
-import { StoreDetailModal } from '../components/StoreDetailModal'
 import { STORE_TYPE_LABELS } from '../data/storesCatalog'
 import { useNowTick } from '../hooks/useNowTick'
 import { normalizeCountryName } from '../utils/validateLocation'
@@ -13,6 +12,7 @@ import { getOpenStatus } from '../utils/storeHours'
  *   filterByProfileCountry?: boolean
  *   prioritizeOpenStores?: boolean
  *   showStoreCardHint?: boolean
+ *   onOpenStore: (storeId: string) => void
  * }} props
  */
 export function StoresScreen({
@@ -21,12 +21,12 @@ export function StoresScreen({
   filterByProfileCountry = true,
   prioritizeOpenStores = true,
   showStoreCardHint = true,
+  onOpenStore,
 }) {
   useNowTick(45000)
 
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState(/** @type {'all' | 'kiosco' | 'libreria' | 'jugueteria'} */ ('all'))
-  const [selectedId, setSelectedId] = useState(/** @type {string | null} */ (null))
 
   const byCountry = useMemo(() => {
     if (!filterByProfileCountry) return allStores
@@ -54,8 +54,6 @@ export function StoresScreen({
       return bo - ao
     })
   }, [filtered, prioritizeOpenStores])
-
-  const selectedStore = selectedId ? allStores.find((s) => s.id === selectedId) ?? null : null
 
   const typeChips = /** @type {const} */ ([
     { id: 'all', label: 'Todas' },
@@ -119,7 +117,7 @@ export function StoresScreen({
                 store={store}
                 typeLabel={STORE_TYPE_LABELS[store.type]}
                 isOpen={open}
-                onOpen={() => setSelectedId(store.id)}
+                onOpen={() => onOpenStore(store.id)}
                 showHint={showStoreCardHint}
               />
             </li>
@@ -135,14 +133,6 @@ export function StoresScreen({
         </p>
       )}
 
-      {selectedStore && (
-        <StoreDetailModal
-          store={selectedStore}
-          typeLabel={STORE_TYPE_LABELS[selectedStore.type]}
-          isOpen={getOpenStatus(selectedStore.weeklyHours, selectedStore.timezone).open}
-          onClose={() => setSelectedId(null)}
-        />
-      )}
     </div>
   )
 }

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="360" viewBox="0 0 800 360">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2d1f4a"/>
+      <stop offset="50%" style="stop-color:#1a3d4a"/>
+      <stop offset="100%" style="stop-color:#1f2d3a"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="360" fill="url(#g)"/>
+  <circle cx="280" cy="160" r="48" fill="#e85d75" opacity="0.85"/>
+  <rect x="420" y="120" width="96" height="96" rx="12" fill="#f4d35e" opacity="0.9"/>
+  <polygon points="520,200 580,120 640,200" fill="#4ecdc4" opacity="0.75"/>
+  <circle cx="200" cy="220" r="36" fill="#95e1a8" opacity="0.7"/>
+  <text x="400" y="310" text-anchor="middle" fill="#9aa8c4" font-family="system-ui,sans-serif" font-size="22">Juguetería</text>
+</svg>

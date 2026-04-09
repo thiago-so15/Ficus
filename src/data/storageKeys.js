@@ -16,3 +16,7 @@ export const STORAGE_PROFILE_DISPLAY_NAME = 'ficus_profile_display_name'
 export const STORAGE_PROFILE_AVATAR_COLOR = 'ficus_profile_avatar_color'
 /** ISO fecha/hora de la primera apertura de la app (no se sobrescribe) */
 export const STORAGE_APP_INSTALL_AT = 'ficus_app_install_at'
+/** IDs de tiendas marcadas como favoritas */
+export const STORAGE_STORE_FAVORITES = 'ficus_store_favorites'
+/** Reseñas de usuario por tienda: objeto storeId → array de reseñas */
+export const STORAGE_STORE_USER_REVIEWS = 'ficus_store_user_reviews'
