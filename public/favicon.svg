@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" width="128" height="128">
+  <rect width="64" height="64" rx="14" fill="#1D9E75" />
+  <text x="6" y="49" font-family="system-ui, sans-serif" font-size="54" font-weight="500" fill="#fff">F</text>
+  <text x="23" y="49" font-family="system-ui, sans-serif" font-size="18" font-weight="400" fill="rgba(255,255,255,0.75)">icus</text>
+</svg>
