@@ -10,3 +10,9 @@ export const STORAGE_PROFILE_INTRO = 'ficus_profile_intro_seen'
 export const STORAGE_APP_SETTINGS = 'ficus_app_settings'
 /** Tema, notificaciones (preferencias), idioma */
 export const STORAGE_USER_PREFERENCES = 'ficus_user_preferences'
+/** Nombre mostrado en la pantalla de perfil */
+export const STORAGE_PROFILE_DISPLAY_NAME = 'ficus_profile_display_name'
+/** Índice 0–4 del color del avatar (ciclo) */
+export const STORAGE_PROFILE_AVATAR_COLOR = 'ficus_profile_avatar_color'
+/** ISO fecha/hora de la primera apertura de la app (no se sobrescribe) */
+export const STORAGE_APP_INSTALL_AT = 'ficus_app_install_at'

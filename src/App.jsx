@@ -5,10 +5,12 @@ import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from './data/appSettings'
 import { STORES_CATALOG } from './data/storesCatalog'
 import { DEFAULT_PROFILE } from './data/profileDefaults'
 import {
+  STORAGE_APP_INSTALL_AT,
   STORAGE_APP_SETTINGS,
   STORAGE_ONBOARDING_COMPLETE,
   STORAGE_PROFILE,
-  STORAGE_PROFILE_INTRO,
+  STORAGE_PROFILE_AVATAR_COLOR,
+  STORAGE_PROFILE_DISPLAY_NAME,
   STORAGE_STICKER_STATES,
   STORAGE_USER_ALBUMS,
   STORAGE_USER_PREFERENCES,
@@ -38,9 +40,12 @@ function App() {
   const [userAlbumIds, setUserAlbumIds] = usePersistentState(STORAGE_USER_ALBUMS, [])
   const [stickerStates, setStickerStates] = usePersistentState(STORAGE_STICKER_STATES, {})
   const [profile, setProfile] = usePersistentState(STORAGE_PROFILE, DEFAULT_PROFILE)
-  const [profileIntroSeen, setProfileIntroSeen] = usePersistentState(STORAGE_PROFILE_INTRO, false)
+  const [displayName, setDisplayName] = usePersistentState(STORAGE_PROFILE_DISPLAY_NAME, '')
+  const [avatarColorIndex, setAvatarColorIndex] = usePersistentState(STORAGE_PROFILE_AVATAR_COLOR, 0)
+  const [installAtIso] = usePersistentState(STORAGE_APP_INSTALL_AT, '')
   const [rawSettings, setRawSettings] = usePersistentState(STORAGE_APP_SETTINGS, DEFAULT_APP_SETTINGS)
   const [rawUserPrefs, setRawUserPrefs] = usePersistentState(STORAGE_USER_PREFERENCES, DEFAULT_USER_PREFERENCES)
+  const [albumDeletedToast, setAlbumDeletedToast] = useState(/** @type {string | null} */ (null))
 
   const settings = normalizeAppSettings(rawSettings)
   const userPrefs = normalizeUserPreferences(rawUserPrefs)
@@ -54,6 +59,12 @@ function App() {
       meta.setAttribute('content', userPrefs.theme === 'dark' ? '#111111' : '#f2f2f2')
     }
   }, [userPrefs.theme, userPrefs.locale])
+
+  useEffect(() => {
+    if (!albumDeletedToast) return undefined
+    const t = window.setTimeout(() => setAlbumDeletedToast(null), 3200)
+    return () => window.clearTimeout(t)
+  }, [albumDeletedToast])
 
   const finishOnboarding = () => {
     setOnboardingDone(true)
@@ -70,6 +81,8 @@ function App() {
 
   /** @param {string} albumId */
   const removeAlbum = (albumId) => {
+    const album = getAlbumById(albumId)
+    const toastLabel = album?.name?.trim() ? `«${album.name.trim()}» eliminado` : 'Álbum eliminado'
     setUserAlbumIds((prev) => prev.filter((id) => id !== albumId))
     setStickerStates((prev) => {
       const next = { ...prev }
@@ -81,6 +94,7 @@ function App() {
         ? { screen: 'home', albumId: null }
         : route,
     )
+    setAlbumDeletedToast(toastLabel)
   }
 
   /**
@@ -166,12 +180,16 @@ function App() {
               )}
               {tab === 'profile' && (
                 <ProfileScreen
+                  displayName={displayName}
+                  onSaveDisplayName={setDisplayName}
+                  avatarColorIndex={avatarColorIndex}
+                  onSaveAvatarColorIndex={setAvatarColorIndex}
+                  installAtIso={installAtIso}
                   profile={profile}
                   onSaveProfile={setProfile}
-                  profileIntroSeen={profileIntroSeen}
-                  onProfileIntroContinue={() => setProfileIntroSeen(true)}
                   userAlbumIds={userAlbumIds}
                   stickerStates={stickerStates}
+                  locale={userPrefs.locale}
                 />
               )}
             </>
@@ -179,6 +197,11 @@ function App() {
         </main>
       </div>
       {showBottomNav && <BottomNav active={tab} onChange={handleTabChange} />}
+      {albumDeletedToast && (
+        <div className="app-toast app-toast--album-deleted" role="status" aria-live="polite">
+          {albumDeletedToast}
+        </div>
+      )}
     </div>
   )
 }
