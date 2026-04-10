@@ -62,6 +62,7 @@ function App() {
   const [rawSettings, setRawSettings] = usePersistentState(STORAGE_APP_SETTINGS, DEFAULT_APP_SETTINGS)
   const [rawUserPrefs, setRawUserPrefs] = usePersistentState(STORAGE_USER_PREFERENCES, DEFAULT_USER_PREFERENCES)
   const [albumDeletedToast, setAlbumDeletedToast] = useState(/** @type {string | null} */ (null))
+  const [printPickerOpen, setPrintPickerOpen] = useState(false)
 
   const [navLocked, setNavLocked] = useState(false)
 
@@ -413,6 +414,7 @@ function App() {
       : []
 
   const showBottomNav = onboardingDone && !showAdd
+  const printableAlbums = userAlbumIds.map((id) => getAlbumById(id)).filter(Boolean)
 
   if (printAlbumId) {
     const printAlbum = getAlbumById(printAlbumId)
@@ -439,6 +441,16 @@ function App() {
 
   const handleWipe = () => {
     window.location.reload()
+  }
+
+  const handleOpenPrintPicker = () => {
+    if (tab !== 'albums' || showAdd) return
+    setPrintPickerOpen(true)
+  }
+
+  const handlePickAlbumToPrint = (albumId) => {
+    setPrintPickerOpen(false)
+    openAlbumPrintSheet(albumId)
   }
 
   /**
@@ -482,7 +494,6 @@ function App() {
                 album={detailAlbum}
                 stickerMap={stickerStates[detailAlbum.id] || {}}
                 onBack={goAlbumsHome}
-                onOpenPrintSheet={() => openAlbumPrintSheet(detailAlbum.id)}
                 onStickerChange={(num, st) => handleStickerChange(detailAlbum.id, num, st)}
                 onMarkRangeMissingAsOwned={(from, to) => handleMarkRangeMissingAsOwned(detailAlbum.id, from, to)}
               />
@@ -627,7 +638,52 @@ function App() {
           )}
         </main>
       </div>
-      {showBottomNav && <BottomNav active={tab} onChange={handleTabChange} disabled={navLocked} />}
+      {showBottomNav && (
+        <BottomNav
+          active={tab}
+          onChange={handleTabChange}
+          disabled={navLocked}
+          showPrintAction={tab === 'albums' && !showAdd}
+          onPrintAction={handleOpenPrintPicker}
+        />
+      )}
+      {printPickerOpen && (
+        <div className="app-modal app-modal--visible" role="presentation">
+          <button
+            type="button"
+            className="app-modal__backdrop"
+            aria-label="Cerrar selección de álbum"
+            onClick={() => setPrintPickerOpen(false)}
+          />
+          <div className="app-modal__sheet print-picker-sheet" role="dialog" aria-modal="true" aria-labelledby="print-picker-title">
+            <div className="print-picker-sheet__handle" aria-hidden />
+            <h2 id="print-picker-title" className="print-picker-sheet__title">
+              ¿Qué álbum querés imprimir?
+            </h2>
+            {printableAlbums.length === 0 ? (
+              <p className="print-picker-sheet__empty">Todavía no tenés álbumes agregados para imprimir.</p>
+            ) : (
+              <ul className="print-picker-list">
+                {printableAlbums.map((album) => (
+                  <li key={album.id}>
+                    <button
+                      type="button"
+                      className="print-picker-list__item"
+                      onClick={() => handlePickAlbumToPrint(album.id)}
+                    >
+                      <span className="print-picker-list__name">{album.name}</span>
+                      <span className="print-picker-list__meta">{album.publisher}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button type="button" className="btn btn--ghost btn--block" onClick={() => setPrintPickerOpen(false)}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
       {albumDeletedToast && (
         <div className="app-toast app-toast--album-deleted" role="status" aria-live="polite">
           {albumDeletedToast}

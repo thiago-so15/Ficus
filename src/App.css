@@ -365,24 +365,11 @@ html[data-theme='light'] .onboarding {
 
 /* Detail header */
 .detail-header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 0.5rem;
-  align-items: start;
   margin-bottom: 1rem;
 }
 
 .detail-header__text {
   margin-top: 0.25rem;
-}
-
-.detail-print-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  white-space: nowrap;
-  padding: 0.45rem 0.6rem;
-  font-size: 0.8rem;
 }
 
 .detail-title {
@@ -2407,6 +2394,11 @@ html[data-theme='light'] .profile-v2-stat-card {
   padding: 0.4rem 0.2rem 0.5rem;
 }
 
+.bottom-nav--five .bottom-nav__item {
+  font-size: 0.6rem;
+  padding: 0.38rem 0.12rem 0.48rem;
+}
+
 .bottom-nav__item {
   flex: 1;
   display: flex;
@@ -2428,10 +2420,83 @@ html[data-theme='light'] .profile-v2-stat-card {
   color: var(--accent);
 }
 
+.bottom-nav__item--print {
+  color: var(--accent);
+}
+
 .bottom-nav__icon {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.print-picker-sheet {
+  width: 100%;
+  max-width: 390px;
+  background: var(--surface);
+  border-radius: 18px 18px 0 0;
+  border: 1px solid var(--hairline);
+  border-bottom: none;
+  padding: 0.5rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+.print-picker-sheet__handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--hairline);
+  margin: 0.1rem auto 0.85rem;
+}
+
+.print-picker-sheet__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.print-picker-sheet__empty {
+  margin: 0 0 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.print-picker-list {
+  margin: 0 0 0.85rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 42vh;
+  overflow: auto;
+}
+
+.print-picker-list__item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  padding: 0.6rem 0.7rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.print-picker-list__item:active {
+  opacity: 0.9;
+}
+
+.print-picker-list__name {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.print-picker-list__meta {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 /* Toast: álbum eliminado (verde + negro) */

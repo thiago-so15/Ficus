@@ -3,11 +3,32 @@
  *   active: 'albums' | 'stores' | 'settings' | 'profile'
  *   onChange: (t: 'albums' | 'stores' | 'settings' | 'profile') => void
  *   disabled?: boolean
+ *   showPrintAction?: boolean
+ *   onPrintAction?: () => void
  * }} props
  */
-export function BottomNav({ active, onChange, disabled = false }) {
+export function BottomNav({
+  active,
+  onChange,
+  disabled = false,
+  showPrintAction = false,
+  onPrintAction = undefined,
+}) {
   return (
-    <nav className="bottom-nav bottom-nav--four" aria-label="Navegación principal">
+    <nav className={`bottom-nav ${showPrintAction ? 'bottom-nav--five' : 'bottom-nav--four'}`} aria-label="Navegación principal">
+      {showPrintAction && (
+        <button type="button" className="bottom-nav__item bottom-nav__item--print" onClick={onPrintAction} disabled={disabled}>
+          <span className="bottom-nav__icon" aria-hidden>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M7 3h10v4H7V3zm10 14H7v4h10v-4zm2-9H5a2 2 0 0 0-2 2v6h4v-3h10v3h4v-6a2 2 0 0 0-2-2z"
+                fill="currentColor"
+              />
+            </svg>
+          </span>
+          Imprimir
+        </button>
+      )}
       <button
         type="button"
         className={`bottom-nav__item ${active === 'albums' ? 'bottom-nav__item--active' : ''}`}

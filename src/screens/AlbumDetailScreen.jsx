@@ -58,7 +58,6 @@ function countMissingInRange(album, stickerMap, from, to) {
  *   album: import('../data/albumsCatalog').AlbumDefinition
  *   stickerMap: Record<string, string>
  *   onBack: () => void
- *   onOpenPrintSheet: () => void
  *   onStickerChange: (num: number, state: import('../components/StickerSquare').StickerState) => void
  *   onMarkRangeMissingAsOwned: (from: number, to: number) => number
  * }} props
@@ -67,7 +66,6 @@ export function AlbumDetailScreen({
   album,
   stickerMap,
   onBack,
-  onOpenPrintSheet,
   onStickerChange,
   onMarkRangeMissingAsOwned,
 }) {
@@ -186,15 +184,6 @@ export function AlbumDetailScreen({
           <h1 className="detail-title">{album.name}</h1>
           <p className="detail-sub">{album.publisher}</p>
         </div>
-        <button type="button" className="btn btn--secondary detail-print-btn" onClick={onOpenPrintSheet}>
-          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
-            <path
-              fill="currentColor"
-              d="M7 3h10v4H7V3zm10 14H7v4h10v-4zm2-9H5a2 2 0 0 0-2 2v6h4v-3h10v3h4v-6a2 2 0 0 0-2-2z"
-            />
-          </svg>
-          Imprimir hoja
-        </button>
       </header>
 
       <section className="stats-grid stats-grid--3" aria-label="Estadísticas del álbum">
