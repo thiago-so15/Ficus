@@ -365,11 +365,24 @@ html[data-theme='light'] .onboarding {
 
 /* Detail header */
 .detail-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.5rem;
+  align-items: start;
   margin-bottom: 1rem;
 }
 
 .detail-header__text {
   margin-top: 0.25rem;
+}
+
+.detail-print-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8rem;
 }
 
 .detail-title {
@@ -3134,6 +3147,213 @@ html[data-theme='light'] .profile-v2-stat-card {
   font-size: 0.85rem;
   text-align: center;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Hoja imprimible de album */
+.print-sheet {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1rem 1rem 1.25rem;
+  color: #111;
+  background: #fff;
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+
+.print-sheet--missing {
+  color: var(--text);
+  background: var(--page);
+}
+
+.print-sheet__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 0.9rem;
+}
+
+.print-sheet__brand {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.print-sheet__logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1d9e75;
+  color: #fff;
+  font-weight: 700;
+}
+
+.print-sheet__title {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.print-sheet__meta {
+  margin: 0.25rem 0 0;
+  color: #505050;
+  font-size: 0.88rem;
+}
+
+.print-sheet__print-btn {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.print-stats {
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 0.6rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.print-stats__cell {
+  text-align: center;
+  background: #f6f6f6;
+  border-radius: 8px;
+  padding: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.print-stats__cell strong {
+  font-size: 1.1rem;
+}
+
+.print-stats__cell span {
+  font-size: 0.78rem;
+  color: #555;
+}
+
+.print-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.print-section {
+  border: 1px solid #dfdfdf;
+  border-radius: 10px;
+  padding: 0.6rem;
+}
+
+.print-section__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.print-section__title span {
+  color: #666;
+  font-weight: 500;
+}
+
+.print-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.print-item {
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 32px;
+  padding: 0.22rem 0.4rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.print-item__box {
+  width: 14px;
+  height: 14px;
+  border: 1px solid #9a9a9a;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.print-item__num {
+  font-size: 0.86rem;
+}
+
+.print-item--checked {
+  background: #edf8f3;
+  border-color: #6cb699;
+}
+
+.print-item--checked .print-item__box {
+  background: #1d9e75;
+  border-color: #1d9e75;
+}
+
+.print-item--checked .print-item__num {
+  text-decoration: line-through;
+}
+
+.print-sheet__footer {
+  margin-top: 0.9rem;
+  color: #666;
+  font-size: 0.84rem;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  html,
+  body,
+  .app-shell,
+  .app-frame,
+  .app-main {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-sheet {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    min-height: auto;
+  }
+
+  .print-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-item--checked {
+    background: #f0f0f0 !important;
+    border-color: #8a8a8a !important;
+  }
+
+  .print-item--checked .print-item__box {
+    background: #444 !important;
+    border-color: #444 !important;
+  }
 }
 
 /* Modales Ajustes */

@@ -26,6 +26,7 @@ import { AjustesScreen } from './screens/AjustesScreen'
 import { AlbumDetailScreen } from './screens/AlbumDetailScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { OnboardingScreen } from './screens/OnboardingScreen'
+import { AlbumPrintSheetScreen } from './screens/AlbumPrintSheetScreen'
 import { ProfileScreen } from './screens/ProfileScreen'
 import { StoreDetailScreen } from './screens/StoreDetailScreen'
 import { StoresScreen } from './screens/StoresScreen'
@@ -79,6 +80,7 @@ function App() {
 
   const settings = normalizeAppSettings(rawSettings)
   const userPrefs = normalizeUserPreferences(rawUserPrefs)
+  const printAlbumId = new URLSearchParams(window.location.search).get('printAlbum')
 
   useEffect(() => {
     document.documentElement.dataset.theme = userPrefs.theme
@@ -95,6 +97,22 @@ function App() {
     const timer = window.setTimeout(() => setAlbumDeletedToast(null), 3200)
     return () => window.clearTimeout(timer)
   }, [albumDeletedToast])
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== STORAGE_STICKER_STATES) return
+      try {
+        const parsed = e.newValue ? JSON.parse(e.newValue) : {}
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          setStickerStates(parsed)
+        }
+      } catch {
+        /* ignore invalid payload */
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [setStickerStates])
 
   /** Tab crossfade: prepare → run */
   useLayoutEffect(() => {
@@ -219,6 +237,12 @@ function App() {
     setNavLocked(true)
     setAlbumsRoute({ screen: 'add', albumId: null })
     setAlbumsAnim('push-prepare')
+  }
+
+  const openAlbumPrintSheet = (albumId) => {
+    const target = new URL(window.location.href)
+    target.searchParams.set('printAlbum', albumId)
+    window.open(target.toString(), '_blank', 'noopener,noreferrer')
   }
 
   const openStore = (/** @type {string} */ id) => {
@@ -390,6 +414,19 @@ function App() {
 
   const showBottomNav = onboardingDone && !showAdd
 
+  if (printAlbumId) {
+    const printAlbum = getAlbumById(printAlbumId)
+    if (!printAlbum) {
+      return (
+        <div className="print-sheet print-sheet--missing">
+          <h1>Álbum no encontrado</h1>
+          <p>Revisá el enlace de impresión e intentá nuevamente.</p>
+        </div>
+      )
+    }
+    return <AlbumPrintSheetScreen album={printAlbum} stickerMap={stickerStates[printAlbum.id] || {}} />
+  }
+
   const handleTabChange = (/** @type {TabId} */ t) => {
     if (navLocked) return
     if (t === tab) return
@@ -445,6 +482,7 @@ function App() {
                 album={detailAlbum}
                 stickerMap={stickerStates[detailAlbum.id] || {}}
                 onBack={goAlbumsHome}
+                onOpenPrintSheet={() => openAlbumPrintSheet(detailAlbum.id)}
                 onStickerChange={(num, st) => handleStickerChange(detailAlbum.id, num, st)}
                 onMarkRangeMissingAsOwned={(from, to) => handleMarkRangeMissingAsOwned(detailAlbum.id, from, to)}
               />
