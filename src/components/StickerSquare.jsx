@@ -32,6 +32,7 @@ export function StickerSquare({ number, state, onToggle, hidden }) {
     <button
       type="button"
       className={`sticker-square sticker-square--${state}`}
+      data-sticker-num={number}
       onClick={cycle}
       aria-label={label}
     >

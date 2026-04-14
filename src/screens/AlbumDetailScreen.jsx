@@ -57,6 +57,7 @@ function countMissingInRange(album, stickerMap, from, to) {
  * @param {{
  *   album: import('../data/albumsCatalog').AlbumDefinition
  *   stickerMap: Record<string, string>
+ *   focusSticker?: number | null
  *   onBack: () => void
  *   onStickerChange: (num: number, state: import('../components/StickerSquare').StickerState) => void
  *   onMarkRangeMissingAsOwned: (from: number, to: number) => number
@@ -65,6 +66,7 @@ function countMissingInRange(album, stickerMap, from, to) {
 export function AlbumDetailScreen({
   album,
   stickerMap,
+  focusSticker = null,
   onBack,
   onStickerChange,
   onMarkRangeMissingAsOwned,
@@ -134,6 +136,25 @@ export function AlbumDetailScreen({
     const t = window.setTimeout(() => setScanToast(null), 2000)
     return () => clearTimeout(t)
   }, [scanToast])
+
+  useEffect(() => {
+    if (focusSticker == null) return undefined
+    const waitMs = reducedMotion ? 50 : 380
+    let innerT = 0
+    const timer = window.setTimeout(() => {
+      const el = document.querySelector(`[data-sticker-num="${focusSticker}"]`)
+      if (!el) return
+      el.scrollIntoView({ block: 'center', behavior: reducedMotion ? 'auto' : 'smooth' })
+      el.classList.add('sticker-square--search-flash')
+      innerT = window.setTimeout(() => {
+        el.classList.remove('sticker-square--search-flash')
+      }, 1100)
+    }, waitMs)
+    return () => {
+      clearTimeout(timer)
+      if (innerT) clearTimeout(innerT)
+    }
+  }, [album.id, focusSticker, reducedMotion])
 
   const openScan = () => {
     setFromStr('')

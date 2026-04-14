@@ -34,7 +34,7 @@ import { getStickerState } from './utils/albumStats'
 import './App.css'
 
 /** @typedef {'albums' | 'stores' | 'settings' | 'profile'} TabId */
-/** @typedef {{ screen: 'home' | 'detail' | 'add', albumId: string | null }} AlbumsRoute */
+/** @typedef {{ screen: 'home' | 'detail' | 'add', albumId: string | null, focusSticker?: number | null }} AlbumsRoute */
 /** @typedef {'idle' | 'push-prepare' | 'push-run' | 'pop-run'} AlbumsAnim */
 /** @typedef {'idle' | 'push-prepare' | 'push-run' | 'pop-run'} StoresAnim */
 /** @typedef {{ screen: 'list' } | { screen: 'detail', storeId: string }} StoresRoute */
@@ -50,6 +50,7 @@ function App() {
     /** @type {AlbumsRoute} */ ({
       screen: 'home',
       albumId: null,
+      focusSticker: null,
     }),
   )
 
@@ -189,27 +190,32 @@ function App() {
     if (navLocked) return
     if (reducedMotion) {
       setUserAlbumIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
-      setAlbumsRoute({ screen: 'home', albumId: null })
+      setAlbumsRoute({ screen: 'home', albumId: null, focusSticker: null })
       return
     }
     setNavLocked(true)
     setAlbumsAnim('pop-run')
     window.setTimeout(() => {
       setUserAlbumIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
-      setAlbumsRoute({ screen: 'home', albumId: null })
+      setAlbumsRoute({ screen: 'home', albumId: null, focusSticker: null })
       setAlbumsAnim('idle')
       setNavLocked(false)
     }, tMs)
   }
 
-  const openAlbum = (id) => {
+  /**
+   * @param {string} id
+   * @param {{ focusSticker?: number | null }} [options]
+   */
+  const openAlbum = (id, options) => {
     if (navLocked) return
+    const focusSticker = options?.focusSticker != null ? options.focusSticker : null
     if (reducedMotion) {
-      setAlbumsRoute({ screen: 'detail', albumId: id })
+      setAlbumsRoute({ screen: 'detail', albumId: id, focusSticker })
       return
     }
     setNavLocked(true)
-    setAlbumsRoute({ screen: 'detail', albumId: id })
+    setAlbumsRoute({ screen: 'detail', albumId: id, focusSticker })
     setAlbumsAnim('push-prepare')
   }
 
@@ -217,13 +223,13 @@ function App() {
     if (navLocked) return
     if (albumsRoute.screen === 'home') return
     if (reducedMotion) {
-      setAlbumsRoute({ screen: 'home', albumId: null })
+      setAlbumsRoute({ screen: 'home', albumId: null, focusSticker: null })
       return
     }
     setNavLocked(true)
     setAlbumsAnim('pop-run')
     window.setTimeout(() => {
-      setAlbumsRoute({ screen: 'home', albumId: null })
+      setAlbumsRoute({ screen: 'home', albumId: null, focusSticker: null })
       setAlbumsAnim('idle')
       setNavLocked(false)
     }, tMs)
@@ -232,11 +238,11 @@ function App() {
   const goAddAlbum = () => {
     if (navLocked) return
     if (reducedMotion) {
-      setAlbumsRoute({ screen: 'add', albumId: null })
+      setAlbumsRoute({ screen: 'add', albumId: null, focusSticker: null })
       return
     }
     setNavLocked(true)
-    setAlbumsRoute({ screen: 'add', albumId: null })
+    setAlbumsRoute({ screen: 'add', albumId: null, focusSticker: null })
     setAlbumsAnim('push-prepare')
   }
 
@@ -316,7 +322,7 @@ function App() {
           delete next[albumId]
           return next
         })
-        setAlbumsRoute({ screen: 'home', albumId: null })
+        setAlbumsRoute({ screen: 'home', albumId: null, focusSticker: null })
         setAlbumDeletedToast(toastLabel)
         return
       }
@@ -329,7 +335,7 @@ function App() {
           delete next[albumId]
           return next
         })
-        setAlbumsRoute({ screen: 'home', albumId: null })
+        setAlbumsRoute({ screen: 'home', albumId: null, focusSticker: null })
         setAlbumsAnim('idle')
         setNavLocked(false)
         setAlbumDeletedToast(toastLabel)
@@ -344,7 +350,9 @@ function App() {
       return next
     })
     setAlbumsRoute((route) =>
-      route.screen === 'detail' && route.albumId === albumId ? { screen: 'home', albumId: null } : route,
+      route.screen === 'detail' && route.albumId === albumId
+        ? { screen: 'home', albumId: null, focusSticker: null }
+        : route,
     )
     setAlbumDeletedToast(toastLabel)
   }
@@ -493,6 +501,7 @@ function App() {
               <AlbumDetailScreen
                 album={detailAlbum}
                 stickerMap={stickerStates[detailAlbum.id] || {}}
+                focusSticker={albumsRoute.screen === 'detail' ? albumsRoute.focusSticker ?? null : null}
                 onBack={goAlbumsHome}
                 onStickerChange={(num, st) => handleStickerChange(detailAlbum.id, num, st)}
                 onMarkRangeMissingAsOwned={(from, to) => handleMarkRangeMissingAsOwned(detailAlbum.id, from, to)}

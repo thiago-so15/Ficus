@@ -1,13 +1,60 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getAlbumById } from '../data/albumsCatalog'
-import { countAlbumStats } from '../utils/albumStats'
+import { countAlbumStats, getStickerState } from '../utils/albumStats'
 import { ProgressBar } from '../components/ProgressBar'
+
+/**
+ * @param {string} s
+ */
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * @param {string} name
+ * @param {string} query
+ */
+function renderHighlightedAlbumName(name, query) {
+  const q = query.trim()
+  if (!q) return name
+  const re = new RegExp(`(${escapeRegExp(q)})`, 'gi')
+  const parts = name.split(re)
+  return parts.map((part, i) => {
+    if (part.toLowerCase() === q.toLowerCase()) {
+      return (
+        <mark key={i} className="global-search-hit">
+          {part}
+        </mark>
+      )
+    }
+    return <Fragment key={i}>{part}</Fragment>
+  })
+}
+
+/**
+ * @param {import('../data/albumsCatalog').AlbumDefinition} album
+ * @param {number} num
+ */
+function findSectionNameForSticker(album, num) {
+  for (const sec of album.sections) {
+    if (num >= sec.from && num <= sec.to) return sec.name
+  }
+  return null
+}
+
+/** @type {Record<'owned' | 'duplicate' | 'missing', string>} */
+const STICKER_STATE_LABEL = {
+  owned: 'Conseguida',
+  duplicate: 'Duplicada',
+  missing: 'Falta',
+}
 
 /**
  * @param {{
  *   userAlbumIds: string[]
  *   stickerStates: Record<string, Record<string, string>>
- *   onOpenAlbum: (id: string) => void
+ *   onOpenAlbum: (id: string, options?: { focusSticker?: number | null }) => void
  *   onAddAlbum: () => void
  *   onDeleteAlbum: (id: string) => void
  *   confirmBeforeDelete?: boolean
@@ -23,8 +70,40 @@ export function HomeScreen({
 }) {
   const albums = userAlbumIds.map((id) => getAlbumById(id)).filter(Boolean)
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef(/** @type {HTMLInputElement | null} */ (null))
+
   const [ctxMenu, setCtxMenu] = useState(/** @type {{ albumId: string, x: number, y: number } | null} */ (null))
   const menuRef = useRef(/** @type {HTMLDivElement | null} */ (null))
+  const [deleteAlbumId, setDeleteAlbumId] = useState(/** @type {string | null} */ (null))
+
+  const trimmedQuery = searchQuery.trim()
+  const isSearching = trimmedQuery.length > 0
+
+  const pureDigitQuery = /^\d+$/.test(trimmedQuery)
+  const stickerNumber = pureDigitQuery ? Number.parseInt(trimmedQuery, 10) : null
+
+  const albumTextMatches = useMemo(() => {
+    if (!isSearching) return []
+    const q = trimmedQuery.toLowerCase()
+    return albums.filter((a) => a.name.toLowerCase().includes(q) || a.publisher.toLowerCase().includes(q))
+  }, [albums, isSearching, trimmedQuery])
+
+  const stickerRows = useMemo(() => {
+    if (!isSearching || stickerNumber == null || Number.isNaN(stickerNumber)) return []
+    const rows = []
+    for (const album of albums) {
+      const sectionName = findSectionNameForSticker(album, stickerNumber)
+      if (!sectionName) continue
+      const state = getStickerState(stickerStates[album.id], stickerNumber)
+      rows.push({ album, sectionName, state })
+    }
+    return rows
+  }, [albums, isSearching, stickerNumber, stickerStates])
+
+  const showAlbumSection = albumTextMatches.length > 0
+  const showStickerSection = stickerNumber != null && !Number.isNaN(stickerNumber) && stickerRows.length > 0
+  const searchHasNoResults = isSearching && !showAlbumSection && !showStickerSection
 
   useEffect(() => {
     if (!ctxMenu) return undefined
@@ -46,6 +125,18 @@ export function HomeScreen({
       document.removeEventListener('mousedown', onPointerDown)
     }
   }, [ctxMenu])
+
+  useEffect(() => {
+    if (!deleteAlbumId) return undefined
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setDeleteAlbumId(null)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [deleteAlbumId])
 
   let totalAlbums = 0
   let totalFilled = 0
@@ -74,16 +165,63 @@ export function HomeScreen({
 
   const handleDelete = () => {
     if (!ctxMenu) return
-    if (confirmBeforeDelete) {
-      const ok = window.confirm('¿Seguro que querés eliminar este álbum de tu colección?')
-      if (!ok) {
-        setCtxMenu(null)
-        return
-      }
-    }
-    onDeleteAlbum(ctxMenu.albumId)
+    const albumId = ctxMenu.albumId
     setCtxMenu(null)
+    if (!confirmBeforeDelete) {
+      onDeleteAlbum(albumId)
+      return
+    }
+    setDeleteAlbumId(albumId)
   }
+
+  const closeDeleteModal = () => setDeleteAlbumId(null)
+
+  const confirmDeleteInModal = () => {
+    if (!deleteAlbumId) return
+    const id = deleteAlbumId
+    setDeleteAlbumId(null)
+    onDeleteAlbum(id)
+  }
+
+  const pendingDeleteAlbum = deleteAlbumId ? getAlbumById(deleteAlbumId) : null
+
+  const clearSearch = () => {
+    setSearchQuery('')
+    searchInputRef.current?.focus()
+  }
+
+  const deleteModal =
+    deleteAlbumId &&
+    createPortal(
+      <div className="app-modal app-modal--visible home-delete-modal" role="presentation">
+        <button type="button" className="app-modal__backdrop" aria-label="Cancelar" onClick={closeDeleteModal} />
+        <div
+          className="ajustes-sheet ajustes-sheet--danger app-modal__sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="home-delete-album-title"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 id="home-delete-album-title" className="ajustes-sheet__title">
+            Eliminar álbum
+          </h3>
+          <p className="ajustes-sheet__body">
+            {pendingDeleteAlbum
+              ? `¿Seguro que querés eliminar «${pendingDeleteAlbum.name}» de tu colección?`
+              : '¿Seguro que querés eliminar este álbum de tu colección?'}
+          </p>
+          <div className="ajustes-sheet__actions">
+            <button type="button" className="btn btn--danger btn--block" onClick={confirmDeleteInModal}>
+              Eliminar
+            </button>
+            <button type="button" className="btn btn--muted btn--block" onClick={closeDeleteModal}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    )
 
   return (
     <div className="screen screen--home fade-in">
@@ -107,9 +245,58 @@ export function HomeScreen({
         </div>
       </section>
 
-      <div className="screen-toolbar">
-        <h2 className="section-title">Mis álbumes</h2>
-        <button type="button" className="btn btn--primary" onClick={onAddAlbum}>
+      <div className={`home-albums-head ${albums.length > 0 ? 'home-albums-head--with-search' : ''}`}>
+        <h2 className="section-title home-albums-head__title">Mis álbumes</h2>
+        {albums.length > 0 ? (
+          <div className="global-search home-albums-head__search" role="search">
+            <label className="global-search__label visually-hidden" htmlFor="global-album-search">
+              Buscar álbumes o número de figurita
+            </label>
+            <span className="global-search__icon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </span>
+            <input
+              ref={searchInputRef}
+              id="global-album-search"
+              type="text"
+              role="searchbox"
+              inputMode="search"
+              enterKeyHint="search"
+              className="global-search__input"
+              placeholder="Buscar por álbum o número…"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery.length > 0 && (
+              <button
+                type="button"
+                className="global-search__clear"
+                onClick={clearSearch}
+                aria-label="Limpiar búsqueda"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M18 6L6 18M6 6l12 12"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        ) : null}
+        <button type="button" className="btn btn--primary home-albums-head__cta" onClick={onAddAlbum}>
           Agregar álbum
         </button>
       </div>
@@ -129,6 +316,95 @@ export function HomeScreen({
           <button type="button" className="btn btn--primary empty-state__cta" onClick={onAddAlbum}>
             Elegir mi primer álbum
           </button>
+        </div>
+      ) : isSearching ? (
+        <div
+          className={[
+            'global-search-results',
+            showAlbumSection && showStickerSection ? 'global-search-results--two-panels' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {searchHasNoResults ? (
+            <div className="global-search-empty">
+              <p className="global-search-empty__title">Sin resultados para «{trimmedQuery}»</p>
+              <p className="global-search-empty__hint">Probá con otro término o número.</p>
+            </div>
+          ) : (
+            <>
+              {showAlbumSection && (
+                <section className="global-search-section" aria-label="Álbumes">
+                  <h3 className="global-search-section__title">Álbumes</h3>
+                  <ul className="global-search-list">
+                    {albumTextMatches.map((album) => {
+                      const s = countAlbumStats(album, stickerStates[album.id])
+                      return (
+                        <li key={album.id}>
+                          <button
+                            type="button"
+                            className="global-search-album-row"
+                            onClick={() => onOpenAlbum(album.id)}
+                          >
+                            <p className="global-search-album-row__name">{renderHighlightedAlbumName(album.name, trimmedQuery)}</p>
+                            <p className="global-search-album-row__publisher">{album.publisher}</p>
+                            <p className="global-search-album-row__meta">
+                              {album.totalStickers} figuritas · {s.pct}% completado
+                            </p>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              )}
+              {showStickerSection && stickerNumber != null && (
+                <section className="global-search-section" aria-label="Figuritas">
+                  <h3 className="global-search-section__title">Figurita #{stickerNumber}</h3>
+                  <ul className="global-search-list">
+                    {stickerRows.map((row) => (
+                      <li key={row.album.id}>
+                        <button
+                          type="button"
+                          className="global-search-sticker-row"
+                          onClick={() => onOpenAlbum(row.album.id, { focusSticker: stickerNumber })}
+                        >
+                          <span
+                            className={[
+                              'global-search-sticker-mini',
+                              row.state === 'owned' && 'global-search-sticker-mini--owned',
+                              row.state === 'duplicate' && 'global-search-sticker-mini--duplicate',
+                              row.state === 'missing' && 'global-search-sticker-mini--missing',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                          >
+                            {stickerNumber}
+                          </span>
+                          <span className="global-search-sticker-row__body">
+                            <span className="global-search-sticker-row__album">{row.album.name}</span>
+                            <span className="global-search-sticker-row__section">{row.sectionName}</span>
+                          </span>
+                          <span
+                            className={[
+                              'global-search-badge',
+                              row.state === 'owned' && 'global-search-badge--owned',
+                              row.state === 'duplicate' && 'global-search-badge--duplicate',
+                              row.state === 'missing' && 'global-search-badge--missing',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                          >
+                            {STICKER_STATE_LABEL[row.state]}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </>
+          )}
         </div>
       ) : (
         <ul className="album-list">
@@ -169,6 +445,8 @@ export function HomeScreen({
           </button>
         </div>
       )}
+
+      {deleteModal}
     </div>
   )
 }
