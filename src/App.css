@@ -548,6 +548,129 @@ html[data-theme='light'] .global-search-hit {
   color: var(--text-secondary);
 }
 
+.home-share-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.detail-share-row {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 0.85rem;
+}
+
+.btn--share-progress {
+  gap: 0.45rem;
+}
+
+.btn--share-progress__icon {
+  flex-shrink: 0;
+}
+
+.home-share-toast {
+  z-index: 115;
+}
+
+/* Cartel: elegir canal para compartir progreso */
+.share-options-modal {
+  z-index: 125;
+}
+
+.share-options-sheet {
+  width: 100%;
+  max-width: 390px;
+  background: var(--surface);
+  border-radius: 18px 18px 0 0;
+  border: 1px solid var(--hairline);
+  border-bottom: none;
+  padding: 0.5rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+.share-options-sheet__handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--hairline);
+  margin: 0.1rem auto 0.65rem;
+}
+
+.share-options-sheet__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+
+.share-options-sheet__subtitle {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.share-options-sheet__list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.share-options-sheet__btn {
+  width: 100%;
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.share-options-sheet__btn:active {
+  opacity: 0.92;
+}
+
+.share-options-sheet__btn--whatsapp {
+  border-color: rgba(37, 211, 102, 0.45);
+  background: rgba(37, 211, 102, 0.12);
+}
+
+.share-options-sheet__btn-label {
+  display: block;
+  font-size: 0.97rem;
+  font-weight: 600;
+}
+
+.share-options-sheet__btn-hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.share-options-sheet__cancel {
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .share-options-sheet__btn:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+  }
+
+  .share-options-sheet__btn--whatsapp:hover {
+    border-color: rgba(37, 211, 102, 0.75);
+    background: rgba(37, 211, 102, 0.18);
+  }
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

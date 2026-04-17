@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getAlbumById } from '../data/albumsCatalog'
 import { countAlbumStats, getStickerState } from '../utils/albumStats'
+import { ShareOptionsSheet } from '../components/ShareOptionsSheet'
 import { ProgressBar } from '../components/ProgressBar'
 
 /**
@@ -76,6 +77,8 @@ export function HomeScreen({
   const [ctxMenu, setCtxMenu] = useState(/** @type {{ albumId: string, x: number, y: number } | null} */ (null))
   const menuRef = useRef(/** @type {HTMLDivElement | null} */ (null))
   const [deleteAlbumId, setDeleteAlbumId] = useState(/** @type {string | null} */ (null))
+  const [shareToast, setShareToast] = useState(/** @type {string | null} */ (null))
+  const [sharePayload, setSharePayload] = useState(/** @type {{ title: string, text: string } | null} */ (null))
 
   const trimmedQuery = searchQuery.trim()
   const isSearching = trimmedQuery.length > 0
@@ -138,6 +141,12 @@ export function HomeScreen({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [deleteAlbumId])
 
+  useEffect(() => {
+    if (!shareToast) return undefined
+    const t = window.setTimeout(() => setShareToast(null), 2600)
+    return () => clearTimeout(t)
+  }, [shareToast])
+
   let totalAlbums = 0
   let totalFilled = 0
   let sumPct = 0
@@ -185,6 +194,20 @@ export function HomeScreen({
 
   const pendingDeleteAlbum = deleteAlbumId ? getAlbumById(deleteAlbumId) : null
 
+  const openShareCollectionSheet = () => {
+    if (totalAlbums === 0) return
+    setSharePayload({
+      title: 'Mi progreso en Ficus',
+      text: [
+        'Mi progreso en Ficus',
+        '',
+        `${totalAlbums} ${totalAlbums === 1 ? 'álbum' : 'álbumes'} en colección`,
+        `${totalFilled} figuritas conseguidas`,
+        `${avgPct}% de completado promedio`,
+      ].join('\n'),
+    })
+  }
+
   const clearSearch = () => {
     setSearchQuery('')
     searchInputRef.current?.focus()
@@ -225,6 +248,11 @@ export function HomeScreen({
 
   return (
     <div className="screen screen--home fade-in">
+      {shareToast && (
+        <div className="detail-scan-toast home-share-toast" role="status" aria-live="polite">
+          {shareToast}
+        </div>
+      )}
       <header className="screen-header">
         <h1 className="app-title">Ficus</h1>
         <p className="app-subtitle">Tu colección de álbumes</p>
@@ -244,6 +272,25 @@ export function HomeScreen({
           <span className="stat-pill__label">Promedio</span>
         </div>
       </section>
+
+      {totalAlbums > 0 && (
+        <div className="home-share-row">
+          <button type="button" className="btn btn--secondary btn--share-progress" onClick={openShareCollectionSheet}>
+            <svg className="btn--share-progress__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="2" />
+              <circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+              <circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="2" />
+              <path
+                d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            Compartir progreso
+          </button>
+        </div>
+      )}
 
       <div className={`home-albums-head ${albums.length > 0 ? 'home-albums-head--with-search' : ''}`}>
         <h2 className="section-title home-albums-head__title">Mis álbumes</h2>
@@ -447,6 +494,14 @@ export function HomeScreen({
       )}
 
       {deleteModal}
+
+      <ShareOptionsSheet
+        open={sharePayload != null}
+        onClose={() => setSharePayload(null)}
+        shareTitle={sharePayload?.title ?? ''}
+        shareText={sharePayload?.text ?? ''}
+        onFeedback={setShareToast}
+      />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { getNumbersForAlbum } from '../data/albumsCatalog'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { StickerSquare } from '../components/StickerSquare'
 import { countAlbumStats, getStickerState } from '../utils/albumStats'
+import { ShareOptionsSheet } from '../components/ShareOptionsSheet'
 
 const SCAN_PANEL_MS = 300
 
@@ -78,6 +79,8 @@ export function AlbumDetailScreen({
   const [fromStr, setFromStr] = useState('')
   const [toStr, setToStr] = useState('')
   const [scanToast, setScanToast] = useState(/** @type {string | null} */ (null))
+  const [shareToast, setShareToast] = useState(/** @type {string | null} */ (null))
+  const [sharePayload, setSharePayload] = useState(/** @type {{ title: string, text: string } | null} */ (null))
 
   const stats = useMemo(() => countAlbumStats(album, stickerMap), [album, stickerMap])
 
@@ -138,6 +141,12 @@ export function AlbumDetailScreen({
   }, [scanToast])
 
   useEffect(() => {
+    if (!shareToast) return undefined
+    const t = window.setTimeout(() => setShareToast(null), 2600)
+    return () => clearTimeout(t)
+  }, [shareToast])
+
+  useEffect(() => {
     if (focusSticker == null) return undefined
     const waitMs = reducedMotion ? 50 : 380
     let innerT = 0
@@ -189,11 +198,32 @@ export function AlbumDetailScreen({
   const showScanOverlay = scanPhase !== 'closed'
   const scanModalVisible = scanPhase === 'open' || scanPhase === 'closing'
 
+  const openShareAlbumSheet = () => {
+    setSharePayload({
+      title: `Ficus · ${album.name}`,
+      text: [
+        'Mi progreso en Ficus',
+        '',
+        `«${album.name}»`,
+        album.publisher,
+        '',
+        `Completado: ${stats.pct}%`,
+        `Conseguidas: ${stats.owned} · Duplicadas: ${stats.duplicate} · Faltan: ${stats.missing}`,
+        `${stats.filled} de ${stats.total} figuritas`,
+      ].join('\n'),
+    })
+  }
+
   return (
     <div className="screen screen--detail fade-in detail-screen">
       {scanToast && (
         <div className="detail-scan-toast" role="status" aria-live="polite">
           {scanToast}
+        </div>
+      )}
+      {shareToast && (
+        <div className="detail-scan-toast" role="status" aria-live="polite">
+          {shareToast}
         </div>
       )}
 
@@ -221,6 +251,23 @@ export function AlbumDetailScreen({
           <span className="stat-cell__label">Completado</span>
         </div>
       </section>
+
+      <div className="detail-share-row">
+        <button type="button" className="btn btn--secondary btn--share-progress" onClick={openShareAlbumSheet}>
+          <svg className="btn--share-progress__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="2" />
+            <circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+            <circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="2" />
+            <path
+              d="M8.59 13.51l6.83 3.98M15.41 6.51L8.59 10.49"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          Compartir progreso
+        </button>
+      </div>
 
       <StickerLegend />
 
@@ -337,6 +384,14 @@ export function AlbumDetailScreen({
           </div>
         </div>
       )}
+
+      <ShareOptionsSheet
+        open={sharePayload != null}
+        onClose={() => setSharePayload(null)}
+        shareTitle={sharePayload?.title ?? ''}
+        shareText={sharePayload?.text ?? ''}
+        onFeedback={setShareToast}
+      />
     </div>
   )
 }
