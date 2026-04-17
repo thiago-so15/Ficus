@@ -2100,6 +2100,57 @@ html[data-theme='light'] .btn--muted {
   cursor: pointer;
 }
 
+.onboarding--language {
+  justify-content: center;
+}
+
+.onboarding-slide--language {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 22rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.onboarding-title--language {
+  margin-top: 0.5rem;
+}
+
+.onboarding-desc--language {
+  margin-bottom: 1.5rem;
+}
+
+.onboarding-lang-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.onboarding-lang-item {
+  width: 100%;
+  padding: 0.85rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.onboarding-lang-item:active {
+  filter: brightness(0.97);
+}
+
 .onboarding-slides {
   flex: 1;
   display: flex;
@@ -3175,6 +3226,8 @@ html[data-theme='light'] .profile-v2-stat-card {
   overflow: auto;
   display: flex;
   flex-direction: column;
+  /* Misma capa opaca que tiendas: sin esto se ve el home detrás durante el slide */
+  background: var(--page);
 }
 
 .albums-stack--idle.albums-stack--screen-home .albums-layer--home {

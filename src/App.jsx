@@ -604,6 +604,8 @@ function App() {
         <main className="app-main app-main--nav">
           {!onboardingDone && (
             <OnboardingScreen
+              userPrefs={userPrefs}
+              onSaveUserPrefs={setRawUserPrefs}
               onComplete={finishOnboarding}
               transitionMs={reducedMotion ? 0 : ONBOARDING_TRANSITION_MS}
               reducedMotion={reducedMotion}

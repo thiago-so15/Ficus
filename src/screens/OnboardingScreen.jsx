@@ -1,4 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
+import { formatOnboardingDotAria, getOnboardingCopy } from '../data/onboardingCopy'
+
+/** @typedef {import('../data/userPreferences').UserPreferences} UserPreferences */
 
 /** @typedef {'missing' | 'owned' | 'duplicate'} DemoState */
 
@@ -15,6 +18,12 @@ const SLIDE2_GRID = /** @type {const} */ ([
   ['missing', 'duplicate', 'owned', 'missing', 'duplicate'],
   ['owned', 'missing', 'owned', 'owned', 'missing'],
 ])
+
+const LANG_NATIVE = /** @type {const} */ ({
+  es: 'Español',
+  en: 'English',
+  pt: 'Português',
+})
 
 function FicusLogoMark() {
   return (
@@ -40,26 +49,32 @@ function DemoSticker({ state }) {
   )
 }
 
-function StickerLegend({ className = '' }) {
+/**
+ * @param {{ owned: string, duplicate: string, missing: string, className?: string }} props
+ */
+function StickerLegend({ owned, duplicate, missing, className = '' }) {
   return (
     <ul className={`sticker-legend ${className}`.trim()}>
       <li className="sticker-legend__item">
         <span className="sticker-legend__swatch sticker-legend__swatch--owned" />
-        Conseguida
+        {owned}
       </li>
       <li className="sticker-legend__item">
         <span className="sticker-legend__swatch sticker-legend__swatch--duplicate" />
-        Duplicada
+        {duplicate}
       </li>
       <li className="sticker-legend__item">
         <span className="sticker-legend__swatch sticker-legend__swatch--missing" />
-        Faltante
+        {missing}
       </li>
     </ul>
   )
 }
 
-function SlideStoresIllustration() {
+/**
+ * @param {{ openLabel: string, closedLabel: string }} props
+ */
+function SlideStoresIllustration({ openLabel, closedLabel }) {
   const cards = [
     { name: 'Kiosco Rivadavia', address: 'Av. Rivadavia 4521', open: true },
     { name: 'Librería Central', address: 'Córdoba 1201', open: false },
@@ -72,7 +87,7 @@ function SlideStoresIllustration() {
           <div className="onboarding-stores-illus__row">
             <span className="onboarding-stores-illus__name">{c.name}</span>
             <span className={`onboarding-stores-illus__badge ${c.open ? 'onboarding-stores-illus__badge--open' : 'onboarding-stores-illus__badge--closed'}`}>
-              {c.open ? 'Abierto' : 'Cerrado'}
+              {c.open ? openLabel : closedLabel}
             </span>
           </div>
           <span className="onboarding-stores-illus__addr">{c.address}</span>
@@ -107,16 +122,21 @@ function SlideAlbumsIllustration() {
 
 /**
  * @param {{
+ *   userPrefs: UserPreferences
+ *   onSaveUserPrefs: (next: UserPreferences) => void
  *   onComplete: () => void
  *   transitionMs: number
  *   reducedMotion: boolean
  * }} props
  */
-export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
+export function OnboardingScreen({ userPrefs, onSaveUserPrefs, onComplete, transitionMs, reducedMotion }) {
+  const [phase, setPhase] = useState(/** @type { 'language' | 'slides' } */ ('language'))
   const [slide, setSlide] = useState(0)
   const [navLock, setNavLock] = useState(false)
   /** @type {[{ from: number, to: number, dir: 'next' | 'back', step: 'prepare' | 'run' } | null, function]} */
   const [slideTrans, setSlideTrans] = useState(null)
+
+  const t = getOnboardingCopy(userPrefs.locale)
 
   const tDur = reducedMotion ? 0 : transitionMs
 
@@ -162,6 +182,14 @@ export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
   const goPrevSlide = () => goTo(slide - 1, 'back')
 
   /**
+   * @param {'es' | 'en' | 'pt'} code
+   */
+  const selectLanguage = (code) => {
+    onSaveUserPrefs({ ...userPrefs, locale: code })
+    setPhase('slides')
+  }
+
+  /**
    * @param {number} index
    */
   const renderSlideBody = (index) => {
@@ -170,12 +198,12 @@ export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
         <div className="onboarding-slide">
           <FicusLogoMark />
           <h1 className="onboarding-brand">Ficus</h1>
-          <p className="onboarding-slogan">Tu colección, siempre al día</p>
+          <p className="onboarding-slogan">{t.slide0Slogan}</p>
           <div className="onboarding-grid onboarding-grid--4" aria-hidden>
             {SLIDE1_GRID.flatMap((row, i) => row.map((cell, j) => <DemoSticker key={`s1-${i}-${j}`} state={cell} />))}
           </div>
           <button type="button" className="btn btn--primary onboarding-cta" onClick={() => goNextSlide()}>
-            Empezar
+            {t.slide0Start}
           </button>
         </div>
       )
@@ -183,21 +211,18 @@ export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
     if (index === 1) {
       return (
         <div className="onboarding-slide">
-          <h2 className="onboarding-title">Seguí tus figuritas fácilmente</h2>
-          <p className="onboarding-desc">
-            Tocá cada casillero para marcar si te falta, si la tenés o si tenés duplicadas. Todo queda guardado en tu
-            dispositivo.
-          </p>
+          <h2 className="onboarding-title">{t.slide1Title}</h2>
+          <p className="onboarding-desc">{t.slide1Desc}</p>
           <div className="onboarding-grid onboarding-grid--5" aria-hidden>
             {SLIDE2_GRID.flatMap((row, i) => row.map((cell, j) => <DemoSticker key={`s2-${i}-${j}`} state={cell} />))}
           </div>
-          <StickerLegend />
+          <StickerLegend owned={t.legendOwned} duplicate={t.legendDuplicate} missing={t.legendMissing} />
           <div className="onboarding-nav-btns">
             <button type="button" className="btn btn--secondary" onClick={() => goPrevSlide()}>
-              Atrás
+              {t.back}
             </button>
             <button type="button" className="btn btn--primary" onClick={() => goNextSlide()}>
-              Siguiente
+              {t.next}
             </button>
           </div>
         </div>
@@ -206,17 +231,15 @@ export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
     if (index === 2) {
       return (
         <div className="onboarding-slide">
-          <h2 className="onboarding-title">Encontrá tiendas cerca tuyo</h2>
-          <p className="onboarding-desc">
-            Explorá kioscos, librerías y jugueterías con dirección, tipo y si están abiertos ahora.
-          </p>
-          <SlideStoresIllustration />
+          <h2 className="onboarding-title">{t.slide2Title}</h2>
+          <p className="onboarding-desc">{t.slide2Desc}</p>
+          <SlideStoresIllustration openLabel={t.storeOpen} closedLabel={t.storeClosed} />
           <div className="onboarding-nav-btns">
             <button type="button" className="btn btn--secondary" onClick={() => goPrevSlide()}>
-              Atrás
+              {t.back}
             </button>
             <button type="button" className="btn btn--primary" onClick={() => goNextSlide()}>
-              Siguiente
+              {t.next}
             </button>
           </div>
         </div>
@@ -224,17 +247,15 @@ export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
     }
     return (
       <div className="onboarding-slide">
-        <h2 className="onboarding-title">Seguí tu progreso en cada álbum</h2>
-        <p className="onboarding-desc">
-          Mirá cuántas figuritas llevás, el porcentaje completado y agregá nuevos álbumes cuando quieras.
-        </p>
+        <h2 className="onboarding-title">{t.slide3Title}</h2>
+        <p className="onboarding-desc">{t.slide3Desc}</p>
         <SlideAlbumsIllustration />
         <div className="onboarding-nav-btns onboarding-nav-btns--stack">
           <button type="button" className="btn btn--primary onboarding-cta" onClick={onComplete}>
-            Empezar a coleccionar
+            {t.slide3Cta}
           </button>
           <button type="button" className="btn btn--secondary" onClick={() => goPrevSlide()}>
-            Atrás
+            {t.back}
           </button>
         </div>
       </div>
@@ -244,6 +265,31 @@ export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
   const transClass = slideTrans
     ? `onboarding-slide-pair onboarding-slide-pair--${slideTrans.dir} onboarding-slide-pair--${slideTrans.step}`
     : ''
+
+  if (phase === 'language') {
+    return (
+      <div className="onboarding onboarding--language">
+        <div className="onboarding-slide onboarding-slide--language">
+          <FicusLogoMark />
+          <h1 className="onboarding-title onboarding-title--language">{t.pickTitle}</h1>
+          <p className="onboarding-desc onboarding-desc--language">{t.pickSubtitle}</p>
+          <ul className="onboarding-lang-list" role="list">
+            {(/** @type {const} */ (['es', 'en', 'pt'])).map((code) => (
+              <li key={code}>
+                <button
+                  type="button"
+                  className="onboarding-lang-item"
+                  onClick={() => selectLanguage(code)}
+                >
+                  {LANG_NATIVE[code]}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="onboarding">
@@ -258,7 +304,7 @@ export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
           }}
           disabled={navLock}
         >
-          Saltar
+          {t.skip}
         </button>
       )}
 
@@ -275,14 +321,14 @@ export function OnboardingScreen({ onComplete, transitionMs, reducedMotion }) {
         )}
       </div>
 
-      <div className="onboarding-dots" role="tablist" aria-label="Paso del tutorial">
+      <div className="onboarding-dots" role="tablist" aria-label={t.dotsListLabel}>
         {Array.from({ length: 4 }, (_, i) => (
           <button
             key={i}
             type="button"
             role="tab"
             aria-selected={slide === i}
-            aria-label={`Paso ${i + 1} de 4`}
+            aria-label={formatOnboardingDotAria(t.dotAria, i + 1, 4)}
             disabled={navLock}
             className={`onboarding-dot ${slide === i ? 'onboarding-dot--active' : ''}`}
             onClick={() => {
